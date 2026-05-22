@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#2ecc71"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>AgroSuino v1.0.4</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="stylesheet" href="style.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     LOGIN
+═══════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="pig">🐷</div>
+      <h1>AgroSuino</h1>
+      <p>Sistema de administración · Granja Porcina · Chiapas</p>
+    </div>
+    <p style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Selecciona tu usuario</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+      <div class="user-chip" onclick="selectLoginUser('administrador')"><i class="fas fa-shield-alt"></i> administrador</div>
+      <div class="user-chip" onclick="selectLoginUser('JFOG')"><i class="fas fa-chart-line"></i> JFOG</div>
+      <div class="user-chip" onclick="selectLoginUser('JFOD')"><i class="fas fa-edit"></i> JFOD</div>
+      <div class="user-chip" onclick="selectLoginUser('JAOD')"><i class="fas fa-edit"></i> JAOD</div>
+    </div>
+    <div id="login-user-display" style="display:none;margin-bottom:14px;padding:10px 14px;background:var(--bg);border:1px solid var(--accent);border-radius:8px;font-size:13px;color:var(--accent);display:flex;align-items:center;gap:8px;">
+      <i class="fas fa-user"></i> <span id="login-user-name">—</span>
+    </div>
+    <input type="hidden" id="login-user"/>
+    <label id="login-pass-label" style="display:none">Contraseña</label>
+    <input type="password" id="login-pass" autocomplete="current-password" placeholder="Contraseña" style="display:none"/>
+    <p class="login-error" id="login-error">Usuario o contraseña incorrectos</p>
+    <button id="login-btn" style="display:none"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+    <div class="login-version version-tag"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     APP
+═══════════════════════════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">🐷 AgroSuino<span>Granja Porcina · Chiapas</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+      <div class="nav-item" data-page="contabilidad"><i class="fas fa-coins"></i> Contabilidad</div>
+      <div class="nav-item" data-page="insumos"><i class="fas fa-wheat-awn"></i> Alimentación</div>
+      <div class="nav-item" data-page="bodega"><i class="fas fa-warehouse"></i> Bodega</div>
+      <div class="nav-item" data-page="reproduccion"><i class="fas fa-venus-mars"></i> Reproducción</div>
+      <div class="nav-item" data-page="configuracion"><i class="fas fa-cog"></i> Configuración</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-name" id="sidebar-username">—</div>
+        <div id="sidebar-nivel" style="font-size:11px;color:var(--text2);margin-top:2px;"></div>
+      </div>
+      <div class="version version-tag" style="margin-top:8px;"></div>
+      <button class="btn btn-danger btn-sm" id="logout-btn" style="margin-top:10px;width:100%"><i class="fas fa-sign-out-alt"></i> Salir</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <!-- HEADER -->
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" id="hamburger"><i class="fas fa-bars"></i></button>
+        <div class="header-title" id="header-title">Dashboard</div>
+      </div>
+      <div class="header-actions">
+        <span id="last-sync-label" class="sync-label text-muted" style="font-size:11px;font-family:var(--font-mono)"></span>
+        <div class="conn-badge offline" id="conn-badge" title="Clic para sincronizar">
+          <div class="conn-dot"></div>
+          <span class="conn-label">Sin conexión</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════ DASHBOARD ════════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="cards-grid" id="dash-kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Ingresos del mes</div>
+          <div class="kpi-val mono text-green" id="dash-ing">$0.00</div>
+          <div class="kpi-sub" id="dash-mes-label"></div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Gastos del mes</div>
+          <div class="kpi-val mono" id="dash-gas">$0.00</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Utilidad</div>
+          <div class="kpi-val mono" id="dash-util">$0.00</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">Margen</div>
+          <div class="kpi-val mono" id="dash-margen">0%</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="dash-row">
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-bell" style="color:var(--amber)"></i> Alertas de Partos</div></div>
+          <div class="alert-list" id="dash-alerts"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-microscope" style="color:var(--blue)"></i> Diagnósticos Pendientes</div></div>
+          <div class="alert-list" id="dash-diag-alerts"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-chart-pie" style="color:var(--accent)"></i> Gastos por Categoría — Mes Actual</div></div>
+        <div class="chart-box"><canvas id="dash-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ════════════ CONTABILIDAD ════════════ -->
+    <div class="page" id="page-contabilidad">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div class="section-title"><i class="fas fa-coins"></i> Contabilidad</div>
+        <div class="btn-group">
+          <div class="filter-bar">
+            <select id="contab-mes"></select>
+            <select id="contab-anio"></select>
+          </div>
+          <button class="btn btn-primary" onclick="openContabModal()"><i class="fas fa-plus"></i> Nuevo</button>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div class="kpi-card"><div class="kpi-label">Ingresos</div><div class="kpi-val mono text-green" id="contab-total-ing">$0</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Gastos</div><div class="kpi-val mono" id="contab-total-gas">$0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Utilidad</div><div class="kpi-val mono" id="contab-total-util">$0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Subcategoría</th><th>Concepto</th><th class="text-right">Importe</th><th></th></tr></thead>
+            <tbody id="contab-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-chart-bar" style="color:var(--amber)"></i> Flujo de Caja Acumulado 2026</div></div>
+        <div class="chart-box" style="height:300px"><canvas id="cashflow-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ════════════ ALIMENTACIÓN ════════════ -->
+    <div class="page" id="page-insumos">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div class="section-title"><i class="fas fa-wheat-awn"></i> Control de Alimentación</div>
+        <div class="btn-group">
+          <div class="filter-bar">
+            <select id="insumos-mes">
+              <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+              <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+              <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+              <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+            <select id="insumos-anio">
+              <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openInsumosModal()"><i class="fas fa-plus"></i> Nueva Revoltura</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-insumos-tab="lista">Registros</button>
+        <button class="tab" data-insumos-tab="ingrediente">Por Ingrediente</button>
+        <button class="tab" data-insumos-tab="etapa">Por Etapa</button>
+      </div>
+
+      <!-- Lista -->
+      <div data-insumos-panel="lista" class="tab-content active card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Semana</th><th>Etapa</th><th>Ingrediente</th><th class="text-right">Cantidad</th><th class="text-right">CU</th><th class="text-right">Importe</th><th></th></tr></thead>
+            <tbody id="insumos-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Por ingrediente -->
+      <div data-insumos-panel="ingrediente" class="tab-content card" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ingrediente</th><th class="text-right">Importe</th><th class="text-right">% del Total</th></tr></thead>
+            <tbody id="insumos-ing-tbody"></tbody>
+            <tfoot id="insumos-ing-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Por etapa -->
+      <div data-insumos-panel="etapa" class="tab-content card" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Etapa</th><th class="text-right">Importe</th><th class="text-right">% del Total</th></tr></thead>
+            <tbody id="insumos-etapa-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════ BODEGA ════════════ -->
+    <div class="page" id="page-bodega">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div class="section-title"><i class="fas fa-warehouse"></i> Bodega / Inventario</div>
+        <button class="btn btn-primary" onclick="openBodegaModal()"><i class="fas fa-plus"></i> Nuevo Movimiento</button>
+      </div>
+
+      <div class="cards-grid" id="bodega-stock-grid"></div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-list-ul" style="color:var(--accent)"></i> Kardex</div>
+          <select id="bodega-filtro-insumo" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:13px;">
+            <option value="Maíz">Maíz</option>
+            <option value="Soya">Soya</option>
+            <option value="Salvado">Salvado</option>
+            <option value="Núcleo">Núcleo</option>
+            <option value="Sorgo">Sorgo</option>
+            <option value="Preiniciadores">Preiniciadores</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th class="text-right">Entrada</th><th class="text-right">Salida/Ajuste</th><th class="text-right">Saldo</th><th></th></tr></thead>
+            <tbody id="bodega-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════ REPRODUCCIÓN ════════════ -->
+    <div class="page" id="page-reproduccion">
+      <div class="section-title"><i class="fas fa-venus-mars"></i> Reproducción</div>
+
+      <div class="tabs">
+        <button class="tab active" data-repro-tab="cerdas">Cerdas</button>
+        <button class="tab" data-repro-tab="sementales">Sementales</button>
+        <button class="tab" data-repro-tab="servicios">Servicios / Montas</button>
+        <button class="tab" data-repro-tab="diagnosticos">Diagnósticos</button>
+        <button class="tab" data-repro-tab="partos">Partos y Destetes</button>
+      </div>
+
+      <!-- Cerdas -->
+      <div data-repro-panel="cerdas" class="tab-content active">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn btn-primary" onclick="openCerdaModal()"><i class="fas fa-plus"></i> Nueva Cerda</button>
+        </div>
+        <div class="card"><div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Raza</th><th>F. Nacimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="cerdas-tbody"></tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Sementales -->
+      <div data-repro-panel="sementales" class="tab-content" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn btn-primary" onclick="openSementalModal()"><i class="fas fa-plus"></i> Nuevo Semental</button>
+        </div>
+        <div class="card"><div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Raza</th><th>Procedencia</th><th>Dosis</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="sem-tbody"></tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Servicios -->
+      <div data-repro-panel="servicios" class="tab-content" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn btn-primary" onclick="openServicioModal()"><i class="fas fa-plus"></i> Registrar Servicio</button>
+        </div>
+        <div class="card"><div class="table-wrap">
+          <table>
+            <thead><tr><th>Cerda</th><th>F. Servicio</th><th>Tipo</th><th>Semental/Dosis</th><th>F. Parto Probable</th><th>Estado</th><th>Revisiones</th><th></th></tr></thead>
+            <tbody id="servicios-tbody"></tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Diagnósticos -->
+      <div data-repro-panel="diagnosticos" class="tab-content" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn btn-primary" onclick="openDiagModal()"><i class="fas fa-plus"></i> Nuevo Diagnóstico</button>
+        </div>
+        <div class="card"><div class="table-wrap">
+          <table>
+            <thead><tr><th>Cerda</th><th>F. Diagnóstico</th><th>Ventana</th><th>Días Post</th><th>Resultado</th><th></th></tr></thead>
+            <tbody id="diag-tbody"></tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Partos -->
+      <div data-repro-panel="partos" class="tab-content" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn btn-primary" onclick="openPartoModal()"><i class="fas fa-plus"></i> Registrar Parto</button>
+        </div>
+        <div class="card"><div class="table-wrap">
+          <table>
+            <thead><tr><th>Cerda</th><th>F. Parto</th><th>Vivos</th><th>Muertos</th><th>F. Destete Probable</th><th>F. Destete Real</th><th>Días Lact.</th><th></th></tr></thead>
+            <tbody id="partos-tbody"></tbody>
+          </table>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════════════ CONFIGURACIÓN ════════════ -->
+    <div class="page" id="page-configuracion">
+      <div class="section-title"><i class="fas fa-cog"></i> Configuración</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-tag" style="color:var(--accent)"></i> Precios CU por Ingrediente</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Ingrediente</th><th>Costo Unitario</th><th></th></tr></thead>
+              <tbody id="precios-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-sync" style="color:var(--blue)"></i> Sincronización Firebase</div></div>
+          <div class="btn-group" style="flex-direction:column;gap:10px">
+            <button class="btn btn-primary" id="btn-sync-all"><i class="fas fa-upload"></i> Sincronizar Todo a Firebase</button>
+            <button class="btn btn-secondary" id="btn-download-fb"><i class="fas fa-download"></i> Descargar desde Firebase</button>
+            <button class="btn btn-secondary" id="btn-check-conn"><i class="fas fa-wifi"></i> Verificar Conexión</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-shield-alt" style="color:var(--accent)"></i> Respaldo Local</div></div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+            El respaldo descarga <b>todos los datos</b> en un archivo JSON a tu dispositivo. 
+            Guárdalo en Google Drive, WhatsApp o correo. Los lunes se genera automáticamente.
+          </p>
+          <div class="btn-group" style="flex-direction:column;gap:10px">
+            <button class="btn btn-primary" id="btn-export-respaldo"><i class="fas fa-download"></i> Descargar Respaldo Completo</button>
+            <button class="btn btn-secondary" id="btn-import-respaldo"><i class="fas fa-upload"></i> Restaurar desde Respaldo</button>
+          </div>
+          <div style="margin-top:14px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Estado de respaldo</div>
+            <div id="last-sync-label-cfg" style="font-size:12px;font-family:var(--font-mono)"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-file-export" style="color:var(--amber)"></i> Exportar Datos</div></div>
+          <div class="btn-group" style="flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('contabilidad')"><i class="fas fa-file-csv"></i> Contabilidad CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('insumos')"><i class="fas fa-file-csv"></i> Insumos CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('bodega')"><i class="fas fa-file-csv"></i> Bodega CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportJSON('contabilidad')"><i class="fas fa-file-code"></i> Contabilidad JSON</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportJSON('bodega')"><i class="fas fa-file-code"></i> Bodega JSON</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-users" style="color:var(--blue)"></i> Usuarios del Sistema</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Usuario</th><th>Nivel</th></tr></thead>
+              <tbody>
+                <tr><td>administrador</td><td><span class="badge badge-green">Nivel 3 — Admin</span></td></tr>
+                <tr><td>JFOG</td><td><span class="badge badge-amber">Nivel 2 — Costos</span></td></tr>
+                <tr><td>JFOD</td><td><span class="badge badge-gray">Nivel 1 — Captura</span></td></tr>
+                <tr><td>JAOD</td><td><span class="badge badge-gray">Nivel 1 — Captura</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <hr class="divider"/>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Guía de inicio de sesión</div>
+          <button class="btn btn-secondary btn-sm" onclick="obResetSkip()"><i class="fas fa-question-circle"></i> Reactivar guía de inicio</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════
+     MODALS
+═══════════════════════════════════════ -->
+
+<!-- Contabilidad Modal -->
+<div class="modal-overlay" id="contab-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-coins"></i> Registro Contable</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="contab-modal-id"/>
+      <form id="contab-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Fecha *</label>
+            <input type="date" id="cf-fecha" required/>
+          </div>
+          <div class="form-group">
+            <label>Tipo *</label>
+            <select id="cf-tipo">
+              <option value="Ingreso">Ingreso</option>
+              <option value="Gasto">Gasto</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Categoría *</label>
+            <select id="cf-categoria"></select>
+          </div>
+          <div class="form-group">
+            <label>Subcategoría</label>
+            <select id="cf-subcategoria"></select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Concepto / Descripción</label>
+            <input type="text" id="cf-concepto" placeholder="Descripción del movimiento"/>
+          </div>
+          <div class="form-group">
+            <label>Importe (MXN) *</label>
+            <input type="number" id="cf-importe" min="0" step="0.01" required/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveContab()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Insumos Modal -->
+<div class="modal-overlay" id="insumos-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-wheat-awn"></i> Registro de Alimentación</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ins-modal-id"/>
+      <form id="ins-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Fecha *</label>
+            <input type="date" id="ins-fecha" required/>
+          </div>
+          <div class="form-group">
+            <label>Etapa *</label>
+            <select id="ins-etapa">
+              <option>Inicio</option><option>Crecimiento</option><option>Finalizador</option>
+              <option>Gestación</option><option>Lactancia</option><option>Reemplazo 2</option><option>Sementales</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ingrediente *</label>
+            <select id="ins-ingrediente">
+              <option>Maíz</option><option>Soya</option><option>Salvado</option><option>Núcleo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Presentación</label>
+            <input type="text" id="ins-presentacion" placeholder="Ej: kg, costales"/>
+          </div>
+          <div class="form-group">
+            <label>Cantidad por revoltura</label>
+            <input type="number" id="ins-cantidad" min="0" step="0.1" placeholder="kg por revoltura"/>
+          </div>
+          <div class="form-group">
+            <label>N° de Revolturas</label>
+            <input type="number" id="ins-medio" min="1" step="1" value="1"/>
+          </div>
+          <div class="form-group">
+            <label>Costo Unitario ($/kg)</label>
+            <input type="number" id="ins-cu" min="0" step="0.01"/>
+          </div>
+          <div class="form-group">
+            <label>Importe Total</label>
+            <input type="number" id="ins-importe" readonly style="opacity:.7"/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveInsumo()"><i class="fas fa-save"></i> Guardar y Descontar Bodega</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bodega Modal -->
+<div class="modal-overlay" id="bodega-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-warehouse"></i> Movimiento de Bodega</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bod-modal-id"/>
+      <form id="bod-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Insumo *</label>
+            <select id="bod-insumo">
+              <option>Maíz</option><option>Soya</option><option>Salvado</option>
+              <option>Núcleo</option><option>Sorgo</option><option>Preiniciadores</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tipo *</label>
+            <select id="bod-tipo">
+              <option value="Entrada">Entrada</option>
+              <option value="Salida">Salida</option>
+              <option value="Ajuste">Ajuste</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Cantidad *</label>
+            <input type="number" id="bod-cantidad" min="0" step="0.1" required/>
+          </div>
+          <div class="form-group">
+            <label>Costo Unitario</label>
+            <input type="number" id="bod-cu" min="0" step="0.01"/>
+          </div>
+          <div class="form-group">
+            <label>Fecha *</label>
+            <input type="date" id="bod-fecha" required/>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Concepto</label>
+            <input type="text" id="bod-concepto" placeholder="Descripción del movimiento"/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveBodega()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cerda Modal -->
+<div class="modal-overlay" id="cerda-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-pig"></i> Cerda</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cerda-modal-id"/>
+      <form id="cerda-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ID / Arete</label>
+            <input type="text" id="cf2-id" placeholder="Número de arete"/>
+          </div>
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input type="text" id="cf2-nombre" required/>
+          </div>
+          <div class="form-group">
+            <label>Raza</label>
+            <input type="text" id="cf2-raza" placeholder="Ej: Yorkshire, Landrace"/>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Nacimiento</label>
+            <input type="date" id="cf2-fnac"/>
+          </div>
+          <div class="form-group">
+            <label>Estado</label>
+            <select id="cf2-estado">
+              <option value="Activa">Activa</option>
+              <option value="Descarte">Descarte</option>
+              <option value="Baja">Baja</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCerda()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Semental Modal -->
+<div class="modal-overlay" id="sem-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-mars"></i> Semental</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sem-modal-id"/>
+      <form id="sem-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ID / Arete</label>
+            <input type="text" id="smf-id"/>
+          </div>
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input type="text" id="smf-nombre" required/>
+          </div>
+          <div class="form-group">
+            <label>Raza</label>
+            <input type="text" id="smf-raza"/>
+          </div>
+          <div class="form-group">
+            <label>Procedencia</label>
+            <input type="text" id="smf-proc"/>
+          </div>
+          <div class="form-group">
+            <label>Dosis Disponibles</label>
+            <input type="number" id="smf-dosis" min="0" value="0"/>
+          </div>
+          <div class="form-group">
+            <label>Estado</label>
+            <select id="smf-estado">
+              <option value="Activo">Activo</option>
+              <option value="Baja">Baja</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSemental()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Servicio Modal -->
+<div class="modal-overlay" id="servicio-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-venus-mars"></i> Registrar Servicio / Monta</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="serv-modal-id"/>
+      <form id="serv-form">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Cerda *</label>
+            <select id="sf-cerda"></select>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Servicio *</label>
+            <input type="date" id="sf-fecha" required/>
+          </div>
+          <div class="form-group">
+            <label>Tipo de Servicio</label>
+            <select id="sf-tipo">
+              <option value="Monta natural">Monta natural</option>
+              <option value="Inseminación artificial">Inseminación artificial</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Semental (si aplica)</label>
+            <input type="text" id="sf-semental" placeholder="Nombre del semental"/>
+          </div>
+          <div class="form-group">
+            <label>Código Dosis (IA)</label>
+            <input type="text" id="sf-dosis" placeholder="Código de dosis"/>
+          </div>
+          <div class="form-group">
+            <label>Fecha Probable de Parto (+114 días)</label>
+            <input type="date" id="sf-parto" readonly style="opacity:.7"/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveServicio()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diagnóstico Modal -->
+<div class="modal-overlay" id="diag-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-microscope"></i> Diagnóstico de Gestación</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="diag-modal-id"/>
+      <form id="diag-form">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Servicio *</label>
+            <select id="df-servicio"></select>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Diagnóstico *</label>
+            <input type="date" id="df-fecha" required/>
+          </div>
+          <div class="form-group">
+            <label>Ventana de Gestación</label>
+            <select id="df-ventana">
+              <option value="21">D+21 días</option>
+              <option value="28">D+28 días</option>
+              <option value="35">D+35 días</option>
+              <option value="42">D+42 días</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Días Post-Servicio (auto)</label>
+            <input type="number" id="df-dias" readonly style="opacity:.7"/>
+          </div>
+          <div class="form-group">
+            <label>Resultado *</label>
+            <select id="df-resultado">
+              <option value="Positivo">Positivo</option>
+              <option value="Negativo–regresó a celo">Negativo — regresó a celo</option>
+              <option value="Dudoso">Dudoso</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDiag()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Parto Modal -->
+<div class="modal-overlay" id="parto-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <h3><i class="fas fa-baby"></i> Parto y Destete</h3>
+      <button class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="parto-modal-id"/>
+      <form id="parto-form">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Cerda *</label>
+            <select id="pf-cerda"></select>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Parto *</label>
+            <input type="date" id="pf-fecha" required/>
+          </div>
+          <div class="form-group">
+            <label>Fecha Destete Probable (+21d)</label>
+            <input type="date" id="pf-destete-prob" readonly style="opacity:.7"/>
+          </div>
+        </div>
+        <hr class="divider"/>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">Lechones nacidos</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Hembras Vivas</label><input type="number" id="pf-hembras-vivas" min="0" value="0"/></div>
+          <div class="form-group"><label>Machos Vivos</label><input type="number" id="pf-machos-vivos" min="0" value="0"/></div>
+          <div class="form-group"><label>Hembras Muertas</label><input type="number" id="pf-hembras-muertas" min="0" value="0"/></div>
+          <div class="form-group"><label>Machos Muertos</label><input type="number" id="pf-machos-muertos" min="0" value="0"/></div>
+          <div class="form-group"><label>Total Vivos</label><div class="kpi-val" id="pf-total-vivos" style="font-size:18px;color:var(--accent)">0</div></div>
+          <div class="form-group"><label>Total Muertos</label><div class="kpi-val" id="pf-total-muertos" style="font-size:18px;color:var(--red)">0</div></div>
+          <div class="form-group">
+            <label>Destino Machos Vivos</label>
+            <select id="pf-destino">
+              <option value="Engorda">Engorda</option>
+              <option value="Candidato a semental">Candidato a semental</option>
+            </select>
+          </div>
+        </div>
+        <hr class="divider"/>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">Destete</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Fecha Destete Real</label><input type="date" id="pf-destete-real"/></div>
+          <div class="form-group"><label>Días de Lactancia (auto)</label><input type="number" id="pf-dias-lact" readonly style="opacity:.7"/></div>
+          <div class="form-group"><label>Hembras Destetadas</label><input type="number" id="pf-hembras-dest" min="0" value="0"/></div>
+          <div class="form-group"><label>Machos Destetados</label><input type="number" id="pf-machos-dest" min="0" value="0"/></div>
+        </div>
+        <hr class="divider"/>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">Pesos al destete de lechonas (3 puntos)</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Peso Mínimo (kg)</label><input type="number" id="pf-peso-min" min="0" step="0.1"/></div>
+          <div class="form-group"><label>Peso Mediano (kg)</label><input type="number" id="pf-peso-med" min="0" step="0.1"/></div>
+          <div class="form-group"><label>Peso Máximo (kg)</label><input type="number" id="pf-peso-max" min="0" step="0.1"/></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary modal-close">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveParto()"><i class="fas fa-save"></i> Guardar Parto</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     ONBOARDING
+═══════════════════════════════════════ -->
+<div id="onboarding-overlay">
+  <div class="onboarding-box">
+
+    <!-- Header -->
+    <div class="ob-header">
+      <div class="ob-logo">🐷 AgroSuino</div>
+      <button class="ob-skip" id="ob-skip-btn">Omitir siempre <i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Slides -->
+    <div class="ob-slides" id="ob-slides">
+
+      <!-- Slide 1 -->
+      <div class="ob-slide active" data-slide="0">
+        <div class="ob-icon" style="background:rgba(46,204,113,.12);color:var(--accent)">
+          <i class="fas fa-sign-in-alt"></i>
+        </div>
+        <div class="ob-step-tag">Paso 1 de 5</div>
+        <h2>Bienvenido, <span id="ob-username"></span></h2>
+        <p>Antes de capturar cualquier registro, sigue estos pasos rápidos para garantizar que tu información esté sincronizada y segura.</p>
+        <div class="ob-tip">
+          <i class="fas fa-lightbulb"></i>
+          Este guía aparece cada vez que inicias sesión. Cuando ya la domines, puedes omitirla para siempre.
+        </div>
+      </div>
+
+      <!-- Slide 2 -->
+      <div class="ob-slide" data-slide="1">
+        <div class="ob-icon" style="background:rgba(52,152,219,.12);color:var(--blue)">
+          <i class="fas fa-wifi"></i>
+        </div>
+        <div class="ob-step-tag">Paso 2 de 5</div>
+        <h2>Verifica tu conexión</h2>
+        <p>Revisa el badge en la esquina superior derecha:</p>
+        <div class="ob-badges-demo">
+          <div class="ob-badge-row">
+            <span class="conn-badge ok" style="pointer-events:none"><div class="conn-dot"></div><span>Firebase OK</span></span>
+            <span class="ob-badge-desc">Conectado — captura normalmente, todo se guarda en tiempo real.</span>
+          </div>
+          <div class="ob-badge-row">
+            <span class="conn-badge syncing" style="pointer-events:none"><div class="conn-dot"></div><span>Sincronizando</span></span>
+            <span class="ob-badge-desc">Espera unos segundos a que termine antes de capturar.</span>
+          </div>
+          <div class="ob-badge-row">
+            <span class="conn-badge offline" style="pointer-events:none"><div class="conn-dot"></div><span>Sin conexión</span></span>
+            <span class="ob-badge-desc">Puedes capturar igual — se guarda en el dispositivo y sube al recuperar señal.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3 -->
+      <div class="ob-slide" data-slide="2">
+        <div class="ob-icon" style="background:rgba(243,156,18,.12);color:var(--amber)">
+          <i class="fas fa-mobile-alt"></i>
+        </div>
+        <div class="ob-step-tag">Paso 3 de 5</div>
+        <h2>¿Es un dispositivo nuevo?</h2>
+        <p>Si es la primera vez que abres la app en este celular o computadora, <strong>antes de capturar</strong> ve a:</p>
+        <div class="ob-path">
+          <span><i class="fas fa-cog"></i> Configuración</span>
+          <i class="fas fa-chevron-right"></i>
+          <span><i class="fas fa-download"></i> Descargar desde Firebase</span>
+        </div>
+        <div class="ob-tip warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          Si capturas antes de descargar, podrías generar registros duplicados o perder contexto de otros usuarios.
+        </div>
+      </div>
+
+      <!-- Slide 4 -->
+      <div class="ob-slide" data-slide="3">
+        <div class="ob-icon" style="background:rgba(231,76,60,.12);color:var(--red)">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="ob-step-tag">Paso 4 de 5</div>
+        <h2>¿Llevas más de un día sin abrir la app?</h2>
+        <p>El indicador junto al badge de conexión te muestra cuándo fue la última sincronización.</p>
+        <div class="ob-status-demo">
+          <div class="ob-status-row"><span class="text-green mono" style="font-size:12px">Hace 30 min</span><span class="ob-badge-desc">Todo bien — puedes capturar.</span></div>
+          <div class="ob-status-row"><span class="text-amber mono" style="font-size:12px">Hace 10 h</span><span class="ob-badge-desc">Recomendable sincronizar antes.</span></div>
+          <div class="ob-status-row"><span class="text-red mono" style="font-size:12px">Hace 2 días</span><span class="ob-badge-desc">Ve a Configuración → Sincronizar Todo antes de capturar.</span></div>
+        </div>
+      </div>
+
+      <!-- Slide 5 -->
+      <div class="ob-slide" data-slide="4">
+        <div class="ob-icon" style="background:rgba(46,204,113,.12);color:var(--accent)">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="ob-step-tag">Paso 5 de 5</div>
+        <h2>Al terminar sin conexión</h2>
+        <p>Si capturaste registros sin internet, cuando recuperes señal:</p>
+        <div class="ob-checklist">
+          <div class="ob-check-item"><i class="fas fa-check-circle"></i> El badge cambiará a <strong>Firebase OK</strong> automáticamente.</div>
+          <div class="ob-check-item"><i class="fas fa-check-circle"></i> Los datos se suben solos en segundo plano.</div>
+          <div class="ob-check-item"><i class="fas fa-check-circle"></i> Puedes tocar el badge para forzar la sincronización de inmediato.</div>
+          <div class="ob-check-item"><i class="fas fa-check-circle"></i> Cada lunes se genera un respaldo automático al abrir la app.</div>
+        </div>
+        <div class="ob-tip">
+          <i class="fas fa-star"></i>
+          ¡Listo! Ya conoces el flujo. Toca <strong>Entendido</strong> para comenzar.
+        </div>
+      </div>
+
+    </div><!-- /ob-slides -->
+
+    <!-- Progress dots -->
+    <div class="ob-dots" id="ob-dots">
+      <div class="ob-dot active" data-dot="0"></div>
+      <div class="ob-dot" data-dot="1"></div>
+      <div class="ob-dot" data-dot="2"></div>
+      <div class="ob-dot" data-dot="3"></div>
+      <div class="ob-dot" data-dot="4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="ob-nav">
+      <button class="btn btn-secondary" id="ob-prev-btn" style="visibility:hidden"><i class="fas fa-arrow-left"></i> Anterior</button>
+      <button class="btn btn-primary" id="ob-next-btn">Siguiente <i class="fas fa-arrow-right"></i></button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     OVERLAYS & UTILITIES
+═══════════════════════════════════════ -->
+<div id="sync-overlay">
+  <div class="spinner"></div>
+  <p id="sync-msg">Sincronizando…</p>
+</div>
+<div id="toast-container"></div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+
+<script>
+// Inline fixes for month select initial value
+document.addEventListener('DOMContentLoaded', () => {
+  const im = document.getElementById('insumos-mes');
+  if (im) im.value = new Date().getMonth() + 1;
+});
+</script>
+
+</body>
+</html>
